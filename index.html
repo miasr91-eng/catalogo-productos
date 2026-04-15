@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Catálogo de Productos</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    input, select { margin: 10px 0; padding: 8px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
+    .card { border: 1px solid #ccc; padding: 10px; border-radius: 10px; }
+    img { width: 100%; height: 150px; object-fit: cover; }
+  </style>
+</head>
+<body>
+
+<h2>Catálogo de Productos</h2>
+
+<input type="file" id="fileInput" />
+
+<br>
+
+<input type="text" id="search" placeholder="Buscar..." />
+<select id="filterTipo">
+  <option value="">Todos los tipos</option>
+</select>
+
+<div class="grid" id="catalogo"></div>
+
+<script>
+let productos = [];
+
+document.getElementById('fileInput').addEventListener('change', handleFile);
+
+function handleFile(e) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, {type: 'array'});
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    productos = XLSX.utils.sheet_to_json(sheet);
+
+    cargarTipos();
+    render();
+  };
+  reader.readAsArrayBuffer(e.target.files[0]);
+}
+
+function cargarTipos() {
+  const tipos = [...new Set(productos.map(p => p.tipo))];
+  const select = document.getElementById('filterTipo');
+  select.innerHTML = '<option value="">Todos los tipos</option>';
+  tipos.forEach(t => {
+    select.innerHTML += `<option value="${t}">${t}</option>`;
+  });
+}
+
+document.getElementById('search').addEventListener('input', render);
+document.getElementById('filterTipo').addEventListener('change', render);
+
+function render() {
+  const busqueda = document.getElementById('search').value.toLowerCase();
+  const tipo = document.getElementById('filterTipo').value;
+
+  const filtrados = productos.filter(p => {
+    return (
+      (!tipo || p.tipo === tipo) &&
+      (p.marca.toLowerCase().includes(busqueda) ||
+       p.modelo.toLowerCase().includes(busqueda))
+    );
+  });
+
+  const contenedor = document.getElementById('catalogo');
+  contenedor.innerHTML = '';
+
+  filtrados.forEach(p => {
+    contenedor.innerHTML += `
+      <div class="card">
+        <img src="${p.imagen_url || 'https://via.placeholder.com/200'}">
+        <h4>${p.marca} ${p.modelo}</h4>
+        <p>Tipo: ${p.tipo}</p>
+        <p>Precio 1: $${p.precio1}</p>
+        <p>Precio 2: $${p.precio2}</p>
+        <p>Precio 3: $${p.precio3}</p>
+        <p>Stock: ${p.stock}</p>
+      </div>
+    `;
+  });
+}
+</script>
+
+</body>
+</html>
