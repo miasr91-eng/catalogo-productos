@@ -31,6 +31,11 @@ let productos = [];
 
 document.getElementById('fileInput').addEventListener('change', handleFile);
 
+function limpiarPrecio(valor) {
+  if (valor === undefined || valor === null) return "";
+  return valor.toString().replace(/[^0-9.]/g, "");
+}
+
 function handleFile(e) {
   console.log("Archivo detectado");
 
@@ -47,40 +52,50 @@ function handleFile(e) {
 
       productos = XLSX.utils.sheet_to_json(sheet).map(p => {
 
-  function limpiarPrecio(valor) {
-    if (valor === undefined || valor === null) return "";
-    return valor.toString().replace(/[^0-9.]/g, "");
-  }
+        console.log("Fila original:", p);
 
-  console.log("Fila original:", p);
+        return {
+          tipo: p.tipo || p.Tipo || p["Tipo de producto"] || "",
+          marca: p.marca || p.Marca || "",
+          modelo: p.modelo || p.Modelo || "",
 
-  return {
-    tipo: p.tipo || p.Tipo || p["Tipo de producto"] || "",
-    marca: p.marca || p.Marca || "",
-    modelo: p.modelo || p.Modelo || "",
+          precio1: limpiarPrecio(
+            p.precio1 || p.Precio1 || p["Precio 1"] || p.PVP || p.PRECIO || p.precio
+          ),
 
-    precio1: limpiarPrecio(
-      p.precio1 || p.Precio1 || p["Precio 1"] || p.PVP || p.PRECIO || p.precio
-    ),
+          precio2: limpiarPrecio(
+            p.precio2 || p.Precio2 || p["Precio 2"] || p.Mayorista
+          ),
 
-    precio2: limpiarPrecio(
-      p.precio2 || p.Precio2 || p["Precio 2"] || p.Mayorista
-    ),
+          precio3: limpiarPrecio(
+            p.precio3 || p.Precio3 || p["Precio 3"] || p.Distribuidor
+          ),
 
-    precio3: limpiarPrecio(
-      p.precio3 || p.Precio3 || p["Precio 3"] || p.Distribuidor
-    ),
+          stock: p.stock || p.Stock || "",
 
-    stock: p.stock || p.Stock || "",
+          imagen_url: p.imagen_url || p.imagen || p.Imagen || p.URL || p.url || ""
+        };
+      });
 
-    imagen_url: p.imagen_url || p.imagen || p.Imagen || p.URL || p.url || ""
+      console.log("Productos procesados:", productos);
+
+      if (productos.length === 0) {
+        alert("El Excel no tiene datos o está mal estructurado");
+        return;
+      }
+
+      cargarTipos();
+      render();
+
+    } catch (error) {
+      console.error("Error leyendo Excel:", error);
+      alert("Error al procesar el archivo Excel");
+    }
   };
-});
 
   reader.readAsArrayBuffer(file);
 }
 
-// Cargar filtro de tipos
 function cargarTipos() {
   const tipos = [...new Set(productos.map(p => p.tipo).filter(t => t))];
   const select = document.getElementById('filterTipo');
@@ -92,11 +107,9 @@ function cargarTipos() {
   });
 }
 
-// Eventos
 document.getElementById('search').addEventListener('input', render);
 document.getElementById('filterTipo').addEventListener('change', render);
 
-// Render catálogo
 function render() {
   const busqueda = document.getElementById('search').value.toLowerCase();
   const tipo = document.getElementById('filterTipo').value;
