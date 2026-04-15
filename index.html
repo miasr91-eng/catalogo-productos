@@ -45,27 +45,37 @@ function handleFile(e) {
       const workbook = XLSX.read(data, {type: 'array'});
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
-      productos = XLSX.utils.sheet_to_json(sheet).map(p => ({
-        tipo: p.tipo || p.Tipo || p["Tipo de producto"] || "",
-        marca: p.marca || p.Marca || "",
-        modelo: p.modelo || p.Modelo || "",
-        precio1: p.precio1 || p.Precio1 || p["Precio 1"] || p.PVP || p.precio || "",
-        precio2: p.precio2 || p.Precio2 || p["Precio 2"] || p.Mayorista || "",
-        precio3: p.precio3 || p.Precio3 || p["Precio 3"] || p.Distribuidor || "",
-        stock: p.stock || p.Stock || "",
-        imagen_url: p.imagen_url || p.imagen || p.Imagen || p.URL || p.url || ""
-      }));
+      productos = XLSX.utils.sheet_to_json(sheet).map(p => {
 
-      console.log("Productos cargados:", productos);
+  function limpiarPrecio(valor) {
+    if (valor === undefined || valor === null) return "";
+    return valor.toString().replace(/[^0-9.]/g, "");
+  }
 
-      cargarTipos();
-      render();
+  console.log("Fila original:", p);
 
-    } catch (error) {
-      console.error("Error leyendo Excel:", error);
-      alert("Error al procesar el archivo Excel");
-    }
+  return {
+    tipo: p.tipo || p.Tipo || p["Tipo de producto"] || "",
+    marca: p.marca || p.Marca || "",
+    modelo: p.modelo || p.Modelo || "",
+
+    precio1: limpiarPrecio(
+      p.precio1 || p.Precio1 || p["Precio 1"] || p.PVP || p.PRECIO || p.precio
+    ),
+
+    precio2: limpiarPrecio(
+      p.precio2 || p.Precio2 || p["Precio 2"] || p.Mayorista
+    ),
+
+    precio3: limpiarPrecio(
+      p.precio3 || p.Precio3 || p["Precio 3"] || p.Distribuidor
+    ),
+
+    stock: p.stock || p.Stock || "",
+
+    imagen_url: p.imagen_url || p.imagen || p.Imagen || p.URL || p.url || ""
   };
+});
 
   reader.readAsArrayBuffer(file);
 }
