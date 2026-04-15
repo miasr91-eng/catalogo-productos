@@ -17,7 +17,6 @@
 <h2>Catálogo de Productos</h2>
 
 <input type="file" id="fileInput" />
-
 <br>
 
 <input type="text" id="search" placeholder="Buscar..." />
@@ -30,55 +29,104 @@
 <script>
 let productos = [];
 
+// Evento para subir archivo
 document.getElementById('fileInput').addEventListener('change', handleFile);
+console.log("Evento de archivo activado");
 
 function handleFile(e) {
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const data = new Uint8Array(e.target.result);
-    const workbook = XLSX.read(data, {type: 'array'});
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    productos = XLSX.utils.sheet_to_json(sheet);
+  console.log("Archivo detectado");
 
-    cargarTipos();
-    render();
+  const file = e.target.files[0];
+  if (!file) {
+    alert("No se seleccionó archivo");
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, {type: 'array'});
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+      // Transformación robusta de datos
+      productos = XLSX.utils.sheet_to_json(sheet).map(p => ({
+        tipo: p.tipo || p.Tipo || "",
+        marca: p.marca || p.Marca || "",
+        modelo: p.modelo || p.Modelo || "",
+        precio1: p.precio1 || p.Precio1 || "",
+        precio2: p.precio2 || p.Precio2 || "",
+        precio3: p.precio3 || p.Precio3 || "",
+        stock: p.stock || p.Stock || "",
+        imagen_url: p.imagen_url || p.imagen || ""
+      }));
+
+      console.log("Productos cargados:", productos);
+
+      if (productos.length === 0) {
+        alert("El Excel no tiene datos o está mal estructurado");
+        return;
+      }
+
+      cargarTipos();
+      render();
+
+    } catch (error) {
+      console.error("Error leyendo Excel:", error);
+      alert("Error al procesar el archivo Excel");
+    }
   };
-  reader.readAsArrayBuffer(e.target.files[0]);
+
+  reader.readAsArrayBuffer(file);
 }
 
+// Cargar tipos en el filtro
 function cargarTipos() {
-  const tipos = [...new Set(productos.map(p => p.tipo))];
+  const tipos = [...new Set(productos.map(p => p.tipo).filter(t => t))];
   const select = document.getElementById('filterTipo');
+
   select.innerHTML = '<option value="">Todos los tipos</option>';
+
   tipos.forEach(t => {
     select.innerHTML += `<option value="${t}">${t}</option>`;
   });
 }
 
+// Eventos de búsqueda y filtro
 document.getElementById('search').addEventListener('input', render);
 document.getElementById('filterTipo').addEventListener('change', render);
 
+// Renderizar catálogo
 function render() {
   const busqueda = document.getElementById('search').value.toLowerCase();
   const tipo = document.getElementById('filterTipo').value;
 
   const filtrados = productos.filter(p => {
+    const tipoVal = (p.tipo || "").toString();
+    const marcaVal = (p.marca || "").toString().toLowerCase();
+    const modeloVal = (p.modelo || "").toString().toLowerCase();
+
     return (
-      (!tipo || p.tipo === tipo) &&
-      (p.marca.toLowerCase().includes(busqueda) ||
-       p.modelo.toLowerCase().includes(busqueda))
+      (!tipo || tipoVal === tipo) &&
+      (marcaVal.includes(busqueda) || modeloVal.includes(busqueda))
     );
   });
 
   const contenedor = document.getElementById('catalogo');
   contenedor.innerHTML = '';
 
+  if (filtrados.length === 0) {
+    contenedor.innerHTML = "<p>No hay productos para mostrar</p>";
+    return;
+  }
+
   filtrados.forEach(p => {
     contenedor.innerHTML += `
       <div class="card">
         <img src="${p.imagen_url || 'https://via.placeholder.com/200'}">
         <h4>${p.marca} ${p.modelo}</h4>
-        <p>Tipo: ${p.tipo}</p>
+        <p><strong>Tipo:</strong> ${p.tipo}</p>
         <p>Precio 1: $${p.precio1}</p>
         <p>Precio 2: $${p.precio2}</p>
         <p>Precio 3: $${p.precio3}</p>
