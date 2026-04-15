@@ -29,18 +29,13 @@
 <script>
 let productos = [];
 
-// Evento para subir archivo
 document.getElementById('fileInput').addEventListener('change', handleFile);
-console.log("Evento de archivo activado");
 
 function handleFile(e) {
   console.log("Archivo detectado");
 
   const file = e.target.files[0];
-  if (!file) {
-    alert("No se seleccionó archivo");
-    return;
-  }
+  if (!file) return;
 
   const reader = new FileReader();
 
@@ -50,24 +45,18 @@ function handleFile(e) {
       const workbook = XLSX.read(data, {type: 'array'});
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
-      // Transformación robusta de datos
       productos = XLSX.utils.sheet_to_json(sheet).map(p => ({
-        tipo: p.tipo || p.Tipo || "",
+        tipo: p.tipo || p.Tipo || p["Tipo de producto"] || "",
         marca: p.marca || p.Marca || "",
         modelo: p.modelo || p.Modelo || "",
-        precio1: p.precio1 || p.Precio1 || "",
-        precio2: p.precio2 || p.Precio2 || "",
-        precio3: p.precio3 || p.Precio3 || "",
+        precio1: p.precio1 || p.Precio1 || p["Precio 1"] || p.PVP || p.precio || "",
+        precio2: p.precio2 || p.Precio2 || p["Precio 2"] || p.Mayorista || "",
+        precio3: p.precio3 || p.Precio3 || p["Precio 3"] || p.Distribuidor || "",
         stock: p.stock || p.Stock || "",
-        imagen_url: p.imagen_url || p.imagen || ""
+        imagen_url: p.imagen_url || p.imagen || p.Imagen || p.URL || p.url || ""
       }));
 
       console.log("Productos cargados:", productos);
-
-      if (productos.length === 0) {
-        alert("El Excel no tiene datos o está mal estructurado");
-        return;
-      }
 
       cargarTipos();
       render();
@@ -81,7 +70,7 @@ function handleFile(e) {
   reader.readAsArrayBuffer(file);
 }
 
-// Cargar tipos en el filtro
+// Cargar filtro de tipos
 function cargarTipos() {
   const tipos = [...new Set(productos.map(p => p.tipo).filter(t => t))];
   const select = document.getElementById('filterTipo');
@@ -93,11 +82,11 @@ function cargarTipos() {
   });
 }
 
-// Eventos de búsqueda y filtro
+// Eventos
 document.getElementById('search').addEventListener('input', render);
 document.getElementById('filterTipo').addEventListener('change', render);
 
-// Renderizar catálogo
+// Render catálogo
 function render() {
   const busqueda = document.getElementById('search').value.toLowerCase();
   const tipo = document.getElementById('filterTipo').value;
@@ -127,10 +116,10 @@ function render() {
         <img src="${p.imagen_url || 'https://via.placeholder.com/200'}">
         <h4>${p.marca} ${p.modelo}</h4>
         <p><strong>Tipo:</strong> ${p.tipo}</p>
-        <p>Precio 1: $${p.precio1}</p>
-        <p>Precio 2: $${p.precio2}</p>
-        <p>Precio 3: $${p.precio3}</p>
-        <p>Stock: ${p.stock}</p>
+        <p>Precio 1: ${p.precio1 ? "$" + p.precio1 : "-"}</p>
+        <p>Precio 2: ${p.precio2 ? "$" + p.precio2 : "-"}</p>
+        <p>Precio 3: ${p.precio3 ? "$" + p.precio3 : "-"}</p>
+        <p>Stock: ${p.stock || "-"}</p>
       </div>
     `;
   });
